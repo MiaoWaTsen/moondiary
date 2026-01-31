@@ -1,65 +1,183 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, ChevronRight } from 'lucide-react';
+import { useRecentEntries, useEntryByDate } from '@/hooks/useDiary';
+import { getTodayString, formatDate } from '@/lib/utils';
+import { DiaryEntry, MOOD_CONFIG } from '@/types';
+import DiaryCard from '@/components/diary/DiaryCard';
+import DiaryEditor from '@/components/diary/DiaryEditor';
+import DiaryModal from '@/components/diary/DiaryModal';
+
+export default function HomePage() {
+  const today = getTodayString();
+  const todayEntry = useEntryByDate(today);
+  const recentEntries = useRecentEntries(5);
+  const [showEditor, setShowEditor] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
+
+  const now = new Date();
+  const greeting = getGreeting(now.getHours());
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="p-4 max-w-lg mx-auto">
+      {/* 頭部 - 日期和問候 */}
+      <motion.header
+        className="text-center py-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <p className="text-gray-400 text-sm">{formatDate(now, 'yyyy 年 M 月 d 日 EEEE')}</p>
+        <h1 className="text-3xl font-bold mt-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          {greeting}
+        </h1>
+        <p className="text-gray-400 text-sm mt-3 opacity-80 font-light">
+          讓記憶回歸本真，讓紀錄成為享受
+        </p>
+      </motion.header>
+
+      {/* 今日狀態 */}
+      <motion.section
+        className="mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        {todayEntry ? (
+          <div
+            className="card cursor-pointer"
+            onClick={() => setSelectedEntry(todayEntry)}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">{MOOD_CONFIG[todayEntry.mood].emoji}</span>
+              <div>
+                <p className="font-medium">{todayEntry.title || '今天的日記'}</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  {todayEntry.content?.substring(0, 50) || '點擊查看詳情'}
+                  {todayEntry.content && todayEntry.content.length > 50 && '...'}
+                </p>
+              </div>
+              <ChevronRight className="ml-auto text-gray-500" />
+            </div>
+          </div>
+        ) : (
+          <motion.button
+            className="card w-full text-left group"
+            onClick={() => setShowEditor(true)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <Plus className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <p className="font-medium text-purple-300">開始記錄今天</p>
+                <p className="text-sm text-gray-400 mt-1">寫下今天的心情和故事</p>
+              </div>
+            </div>
+          </motion.button>
+        )}
+      </motion.section>
+
+      {/* 編輯器彈窗 */}
+      <AnimatePresence>
+        {showEditor && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="min-h-full p-4 py-8">
+              <div className="max-w-lg mx-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold">✍️ 寫日記</h2>
+                  <button
+                    onClick={() => setShowEditor(false)}
+                    className="btn btn-secondary text-sm"
+                  >
+                    關閉
+                  </button>
+                </div>
+                <DiaryEditor
+                  entry={todayEntry || undefined}
+                  date={today}
+                  onSave={() => setShowEditor(false)}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 最近日記 */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-300">最近的日記</h2>
+        </div>
+
+        {recentEntries && recentEntries.length > 0 ? (
+          <div className="space-y-3">
+            {recentEntries
+              .filter((e) => e.date !== today)
+              .slice(0, 5)
+              .map((entry, index) => (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                >
+                  <DiaryCard
+                    entry={entry}
+                    onClick={() => setSelectedEntry(entry)}
+                  />
+                </motion.div>
+              ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <p className="text-4xl mb-2">📔</p>
+            <p>還沒有日記</p>
+            <p className="text-sm mt-1">開始記錄你的第一篇吧！</p>
+          </div>
+        )}
+      </motion.section>
+
+      {/* 日記詳情彈窗 */}
+      {selectedEntry && (
+        <DiaryModal
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
+
+      {/* 浮動新增按鈕 */}
+      {todayEntry && (
+        <motion.button
+          className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/30"
+          onClick={() => setShowEditor(true)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Plus className="w-6 h-6 text-white" />
+        </motion.button>
+      )}
     </div>
   );
+}
+
+function getGreeting(hour: number): string {
+  if (hour < 6) return '夜深了 🌙';
+  if (hour < 12) return '早安 ☀️';
+  if (hour < 18) return '午安 🌤️';
+  return '晚安 🌙';
 }
