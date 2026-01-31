@@ -46,11 +46,12 @@ export async function saveEntry(entry: Partial<DiaryEntry> & { date: string }): 
         await db.entries.update(existing.id, {
             ...entry,
             updatedAt: now,
+            synced: 0, // 標記為未同步
         });
         return existing.id;
     } else {
         // 建立新的
-        const newEntry: DiaryEntry = {
+        const newEntry: DiaryEntry & { synced?: number } = {
             id: uuidv4(),
             createdAt: now,
             updatedAt: now,
@@ -63,6 +64,7 @@ export async function saveEntry(entry: Partial<DiaryEntry> & { date: string }): 
             tags: entry.tags || [],
             weather: entry.weather,
             location: entry.location,
+            synced: 0, // 標記為未同步
         };
 
         await db.entries.add(newEntry);

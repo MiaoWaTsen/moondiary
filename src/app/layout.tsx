@@ -3,6 +3,8 @@ import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import AnimatedBg from '@/components/layout/AnimatedBg';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
+import SyncManager from '@/components/layout/SyncManager';
 
 export const metadata: Metadata = {
   title: 'Moodiary - 記錄每一天的心情',
@@ -21,13 +23,16 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0f" />
       </head>
       <body>
-        <ThemeProvider>
-          <AnimatedBg />
-          <main className="page-content">
-            {children}
-          </main>
-          <Navbar />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <SyncManager />
+            <AnimatedBg />
+            <main className="page-content">
+              {children}
+            </main>
+            <Navbar />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
