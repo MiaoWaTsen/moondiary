@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Github, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { AuthError } from '@supabase/supabase-js';
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -20,8 +22,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     const [message, setMessage] = useState<string | null>(null);
 
     const { signInWithGoogle } = useAuth();
+    const { showToast } = useToast();
 
-    const handleEmailAuth = async (e: React.FormEvent) => {
+    const handleEmailAuth = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
@@ -34,6 +37,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     password,
                 });
                 if (error) throw error;
+                showToast('登入成功', 'success');
                 onClose();
             } else {
                 const { error, data } = await supabase.auth.signUp({
@@ -43,16 +47,37 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 if (error) throw error;
                 if (data.user && !data.session) {
                     setMessage('註冊成功！請檢查您的信箱以驗證帳號。');
+                    showToast('註冊成功！請檢查信箱', 'success');
                 } else {
+                    showToast('註冊並登入成功', 'success');
                     onClose();
                 }
             }
-        } catch (err: any) {
-            setError(err.message === 'Invalid login credentials' ? '帳號或密碼錯誤' : err.message);
+        } catch (err) {
+            const authError = err as AuthError;
+            const errorMessage = authError.message === 'Invalid login credentials'
+                ? '帳號或密碼錯誤'
+                : authError.message;
+            setError(errorMessage);
+            showToast(errorMessage, 'error');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [email, password, isLogin, onClose, showToast]);
+
+    const handleToggleMode = useCallback(() => {
+        setIsLogin(!isLogin);
+        setError(null);
+        setMessage(null);
+    }, [isLogin]);
+
+    const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setEmail(e.target.value);
+    }, []);
+
+    const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setPassword(e.target.value);
+    }, []);
 
     return (
         <AnimatePresence>
@@ -104,7 +129,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                         <input
                                             type="email"
                                             value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
+                                            onChange={handleEmailChange}
                                             required
                                             className="input pl-10"
                                             placeholder="name@example.com"
@@ -116,7 +141,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                     <input
                                         type="password"
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={handlePasswordChange}
                                         required
                                         className="input"
                                         placeholder="••••••••"
@@ -171,11 +196,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                             <div className="mt-6 text-center text-sm text-gray-400">
                                 {isLogin ? '還沒有帳號？' : '已經有帳號了？'}
                                 <button
-                                    onClick={() => {
-                                        setIsLogin(!isLogin);
-                                        setError(null);
-                                        setMessage(null);
-                                    }}
+                                    onClick={handleToggleMode}
                                     className="ml-1 text-purple-400 hover:text-purple-300 font-medium"
                                 >
                                     {isLogin ? '立即註冊' : '登入'}

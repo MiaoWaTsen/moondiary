@@ -1,37 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { DiaryEntry } from '@/types';
 
+export interface SyncState {
+    isSyncing: boolean;
+    lastSyncTime: Date | null;
+    syncError: string | null;
+}
+
 export function useSync() {
     const { user } = useAuth();
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+    const [syncError, setSyncError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!user) return;
-
-        // 初始同步
-        syncData();
-
-        // 設定定期同步 (每 5 分鐘)
-        const interval = setInterval(syncData, 5 * 60 * 1000);
-
-        // 監聽線上狀態
-        window.addEventListener('online', syncData);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('online', syncData);
-        };
-    }, [user]);
-
-    const syncData = async () => {
+    const syncData = useCallback(async () => {
         if (!user || isSyncing) return;
 
         try {
             setIsSyncing(true);
+            setSyncError(null);
             const syncState = await db.syncState.get('lastSync');
             const lastSync = syncState?.timestamp || 0;
             const now = Date.now();
@@ -100,13 +90,38 @@ export function useSync() {
             // 更新最後同步時間
             await db.syncState.put({ id: 'lastSync', timestamp: now });
             setLastSyncTime(new Date(now));
+            setSyncError(null);
 
         } catch (error) {
             console.error('Sync failed:', error);
+            const errorMessage = error instanceof Error ? error.message : '同步失敗';
+            setSyncError(errorMessage);
         } finally {
             setIsSyncing(false);
         }
-    };
+    }, [user, isSyncing]);
 
-    return { isSyncing, lastSyncTime, syncNow: syncData };
+    useEffect(() => {
+        if (!user) return;
+
+        // 初始同步
+        syncData();
+
+        // 設定定期同步 (每 5 分鐘)
+        const interval = setInterval(syncData, 5 * 60 * 1000);
+
+        // 監聽線上狀態
+        window.addEventListener('online', syncData);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('online', syncData);
+        };
+    }, [user, syncData]);
+
+    const clearError = useCallback(() => {
+        setSyncError(null);
+    }, []);
+
+    return { isSyncing, lastSyncTime, syncError, syncNow: syncData, clearError };
 }

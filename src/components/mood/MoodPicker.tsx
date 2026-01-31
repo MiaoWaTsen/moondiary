@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { MoodType, MOOD_CONFIG } from '@/types';
 
@@ -10,7 +11,11 @@ interface MoodPickerProps {
 
 const moods: MoodType[] = ['terrible', 'bad', 'okay', 'good', 'amazing'];
 
-export default function MoodPicker({ value, onChange }: MoodPickerProps) {
+function MoodPicker({ value, onChange }: MoodPickerProps) {
+    const handleMoodClick = useCallback((mood: MoodType) => {
+        onChange(mood);
+    }, [onChange]);
+
     return (
         <div className="mood-picker">
             {moods.map((mood) => {
@@ -22,7 +27,7 @@ export default function MoodPicker({ value, onChange }: MoodPickerProps) {
                         key={mood}
                         type="button"
                         className={`mood-btn ${isActive ? 'active' : ''}`}
-                        onClick={() => onChange(mood)}
+                        onClick={() => handleMoodClick(mood)}
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.95 }}
                         animate={{
@@ -47,3 +52,5 @@ export default function MoodPicker({ value, onChange }: MoodPickerProps) {
         </div>
     );
 }
+
+export default memo(MoodPicker);

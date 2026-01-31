@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, MapPin, Cloud, Loader2, Sparkles } from 'lucide-react';
-import { DiaryEntry, MoodType, Photo, WeatherData, LocationData } from '@/types';
+import { DiaryEntry, MoodType, Photo } from '@/types';
 import { saveEntry, useAllTags } from '@/hooks/useDiary';
-import { getWeather } from '@/lib/weather';
-import { getCurrentLocation } from '@/lib/location';
+import { useLocationWeather } from '@/hooks/useLocationWeather';
 import { getTodayString } from '@/lib/utils';
 import MoodPicker from '@/components/mood/MoodPicker';
 import PhotoUploader from '@/components/photos/PhotoUploader';
 import TagInput from '@/components/tags/TagInput';
 import { analyzeMood } from '@/app/actions/analyzeMood';
+import { useToast } from '@/context/ToastContext';
 
 interface DiaryEditorProps {
     entry?: DiaryEntry;
@@ -26,13 +26,19 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
     const [mood, setMood] = useState<MoodType>(entry?.mood || 'okay');
     const [photos, setPhotos] = useState<Photo[]>(entry?.photos || []);
     const [tags, setTags] = useState<string[]>(entry?.tags || []);
-    const [weather, setWeather] = useState<WeatherData | undefined>(entry?.weather);
-    const [location, setLocation] = useState<LocationData | undefined>(entry?.location);
     const [isSaving, setIsSaving] = useState(false);
-    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-    const [showSaved, setShowSaved] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<{ analysis: string; quote: string } | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const { showToast } = useToast();
+    const {
+        weather,
+        location,
+        isLoading: isLoadingLocation,
+        fetch: fetchLocationAndWeather,
+        setWeather,
+        setLocation,
+    } = useLocationWeather(entry?.weather, entry?.location);
 
     const allTags = useAllTags();
     const tagSuggestions = allTags?.map((t) => t.tag) || [];
@@ -44,26 +50,9 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
         if (!weather && !location) {
             fetchLocationAndWeather();
         }
-    }, [weather, location]);
+    }, [weather, location, fetchLocationAndWeather]);
 
-    const fetchLocationAndWeather = async () => {
-        setIsLoadingLocation(true);
-        try {
-            const loc = await getCurrentLocation();
-            if (loc) {
-                setLocation(loc);
-                if (loc.coords) {
-                    const w = await getWeather(loc.coords.lat, loc.coords.lng);
-                    if (w) setWeather(w);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to get location/weather:', error);
-        }
-        setIsLoadingLocation(false);
-    };
-
-    const handleAnalyze = async () => {
+    const handleAnalyze = useCallback(async () => {
         if (!content.trim()) return;
         setIsAnalyzing(true);
         try {
@@ -73,13 +62,15 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
                 analysis: result.analysis,
                 quote: result.quote
             });
+            showToast('AI 分析完成', 'success');
         } catch (error) {
             console.error('Analysis failed:', error);
+            showToast('AI 分析失敗，請稍後再試', 'error');
         }
         setIsAnalyzing(false);
-    };
+    }, [content, showToast]);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         setIsSaving(true);
         try {
             await saveEntry({
@@ -93,14 +84,22 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
                 weather,
                 location,
             });
-            setShowSaved(true);
-            setTimeout(() => setShowSaved(false), 2000);
+            showToast('日記已儲存', 'success');
             onSave?.();
         } catch (error) {
             console.error('Failed to save:', error);
+            showToast('儲存失敗，請稍後再試', 'error');
         }
         setIsSaving(false);
-    };
+    }, [entry?.id, targetDate, title, content, mood, photos, tags, weather, location, showToast, onSave]);
+
+    const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setTitle(e.target.value);
+    }, []);
+
+    const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setContent(e.target.value);
+    }, []);
 
     return (
         <motion.div
@@ -118,7 +117,7 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
             <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={handleTitleChange}
                 placeholder="今天的標題..."
                 className="input text-xl font-medium"
             />
@@ -127,7 +126,7 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
             <div className="relative">
                 <textarea
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={handleContentChange}
                     placeholder="寫下今天的故事..."
                     className="textarea mb-2"
                 />
@@ -224,14 +223,6 @@ export default function DiaryEditor({ entry, date, initialContent, onSave }: Dia
             >
                 {isSaving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                ) : showSaved ? (
-                    <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="flex items-center gap-2"
-                    >
-                        ✓ 已儲存
-                    </motion.span>
                 ) : (
                     <>
                         <Save className="w-5 h-5" />

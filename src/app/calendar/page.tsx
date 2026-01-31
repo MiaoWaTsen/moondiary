@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEntriesByMonth } from '@/hooks/useDiary';
 import { MOOD_CONFIG, DiaryEntry } from '@/types';
@@ -10,6 +10,26 @@ import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import DiaryEditor from '@/components/diary/DiaryEditor';
 import DiaryModal from '@/components/diary/DiaryModal';
+import { Skeleton } from '@/components/common/Skeleton';
+
+// Dynamic import for react-calendar to reduce initial bundle
+const Calendar = dynamic(() => import('react-calendar'), {
+    ssr: false,
+    loading: () => (
+        <div className="p-4">
+            <div className="grid grid-cols-7 gap-2 mb-4">
+                {['日', '一', '二', '三', '四', '五', '六'].map((d) => (
+                    <div key={d} className="text-center text-sm text-gray-400">{d}</div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 35 }).map((_, i) => (
+                    <Skeleton key={i} className="aspect-square rounded-lg" />
+                ))}
+            </div>
+        </div>
+    ),
+});
 
 export default function CalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());

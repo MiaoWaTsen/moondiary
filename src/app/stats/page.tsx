@@ -1,21 +1,50 @@
 'use client';
 
 import { useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-} from 'recharts';
 import { useStats } from '@/hooks/useDiary';
 import { MOOD_CONFIG, MoodType } from '@/types';
 import { format, subDays, parseISO } from 'date-fns';
+import { ChartSkeleton, StatsCardSkeleton } from '@/components/common/Skeleton';
+
+// Dynamic imports for Recharts to reduce initial bundle
+const LineChart = dynamic(
+    () => import('recharts').then(mod => mod.LineChart),
+    { ssr: false, loading: () => <ChartSkeleton /> }
+);
+const Line = dynamic(
+    () => import('recharts').then(mod => mod.Line),
+    { ssr: false }
+);
+const XAxis = dynamic(
+    () => import('recharts').then(mod => mod.XAxis),
+    { ssr: false }
+);
+const YAxis = dynamic(
+    () => import('recharts').then(mod => mod.YAxis),
+    { ssr: false }
+);
+const Tooltip = dynamic(
+    () => import('recharts').then(mod => mod.Tooltip),
+    { ssr: false }
+);
+const ResponsiveContainer = dynamic(
+    () => import('recharts').then(mod => mod.ResponsiveContainer),
+    { ssr: false }
+);
+const PieChart = dynamic(
+    () => import('recharts').then(mod => mod.PieChart),
+    { ssr: false }
+);
+const Pie = dynamic(
+    () => import('recharts').then(mod => mod.Pie),
+    { ssr: false }
+);
+const Cell = dynamic(
+    () => import('recharts').then(mod => mod.Cell),
+    { ssr: false }
+);
 
 const MOOD_VALUES: Record<MoodType, number> = {
     terrible: 1,
@@ -96,8 +125,17 @@ export default function StatsPage() {
 
     if (!stats) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="loading-spinner" />
+            <div className="p-4 max-w-lg mx-auto">
+                <div className="text-center py-6 mb-6">
+                    <div className="h-8 w-32 mx-auto bg-gray-800 rounded animate-pulse" />
+                    <div className="h-4 w-48 mx-auto mt-2 bg-gray-800 rounded animate-pulse" />
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                    <StatsCardSkeleton />
+                    <StatsCardSkeleton />
+                    <StatsCardSkeleton />
+                </div>
+                <ChartSkeleton />
             </div>
         );
     }
@@ -180,7 +218,7 @@ export default function StatsPage() {
                                     tickLine={false}
                                     axisLine={false}
                                     ticks={[1, 2, 3, 4, 5]}
-                                    tickFormatter={(v) => {
+                                    tickFormatter={(v: number) => {
                                         const moods: MoodType[] = ['terrible', 'bad', 'okay', 'good', 'amazing'];
                                         return MOOD_CONFIG[moods[v - 1]]?.emoji || '';
                                     }}
@@ -191,7 +229,7 @@ export default function StatsPage() {
                                         border: '1px solid #2a2a3a',
                                         borderRadius: '8px',
                                     }}
-                                    formatter={(value: any) => {
+                                    formatter={(value) => {
                                         if (value == null || typeof value !== 'number') return ['無資料', '心情'];
                                         const moods: MoodType[] = ['terrible', 'bad', 'okay', 'good', 'amazing'];
                                         const mood = moods[value - 1];

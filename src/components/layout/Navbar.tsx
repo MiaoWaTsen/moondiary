@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Calendar, BarChart3, Search, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { useState } from 'react';
 import LoginModal from '@/components/auth/LoginModal';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -18,6 +19,7 @@ const navItems = [
 export default function Navbar() {
     const pathname = usePathname();
     const { user, signOut } = useAuth();
+    const { showToast } = useToast();
     const [showLogin, setShowLogin] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -32,6 +34,7 @@ export default function Navbar() {
     const handleLogout = async () => {
         await signOut();
         setShowUserMenu(false);
+        showToast('已登出', 'info');
     };
 
     return (

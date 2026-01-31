@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ChevronRight } from 'lucide-react';
 import { useRecentEntries, useEntryByDate } from '@/hooks/useDiary';
@@ -10,8 +10,8 @@ import DiaryCard from '@/components/diary/DiaryCard';
 import DiaryEditor from '@/components/diary/DiaryEditor';
 import DiaryModal from '@/components/diary/DiaryModal';
 import ThemeSwitcher from '@/components/layout/ThemeSwitcher';
-
 import DailyPrompt from '@/components/ai/DailyPrompt';
+import { DiaryCardSkeleton } from '@/components/common/Skeleton';
 
 export default function HomePage() {
   const today = getTodayString();
@@ -21,13 +21,37 @@ export default function HomePage() {
   const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
   const [editorInitialContent, setEditorInitialContent] = useState('');
 
-  const now = new Date();
-  const greeting = getGreeting(now.getHours());
+  const now = useMemo(() => new Date(), []);
+  const greeting = useMemo(() => getGreeting(now.getHours()), [now]);
 
-  const handlePromptSelect = (prompt: string) => {
+  const handlePromptSelect = useCallback((prompt: string) => {
     setEditorInitialContent(`Q: ${prompt}\n\nA: `);
     setShowEditor(true);
-  };
+  }, []);
+
+  const handleOpenEditor = useCallback(() => {
+    setShowEditor(true);
+  }, []);
+
+  const handleCloseEditor = useCallback(() => {
+    setShowEditor(false);
+  }, []);
+
+  const handleSelectEntry = useCallback((entry: DiaryEntry) => {
+    setSelectedEntry(entry);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedEntry(null);
+  }, []);
+
+  // Filter out today's entry from recent entries
+  const filteredRecentEntries = useMemo(() => {
+    if (!recentEntries) return null;
+    return recentEntries.filter((e) => e.date !== today).slice(0, 5);
+  }, [recentEntries, today]);
+
+  const isLoading = recentEntries === undefined;
 
   return (
     <div className="p-4 max-w-lg mx-auto relative">
@@ -72,7 +96,7 @@ export default function HomePage() {
         {todayEntry ? (
           <div
             className="card cursor-pointer"
-            onClick={() => setSelectedEntry(todayEntry)}
+            onClick={() => handleSelectEntry(todayEntry)}
           >
             <div className="flex items-center gap-4">
               <span className="text-4xl">{MOOD_CONFIG[todayEntry.mood].emoji}</span>
@@ -89,7 +113,7 @@ export default function HomePage() {
         ) : (
           <motion.button
             className="card w-full text-left group"
-            onClick={() => setShowEditor(true)}
+            onClick={handleOpenEditor}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -120,7 +144,7 @@ export default function HomePage() {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold">✍️ 寫日記</h2>
                   <button
-                    onClick={() => setShowEditor(false)}
+                    onClick={handleCloseEditor}
                     className="btn btn-secondary text-sm"
                   >
                     關閉
@@ -130,7 +154,7 @@ export default function HomePage() {
                   entry={todayEntry || undefined}
                   date={today}
                   initialContent={editorInitialContent}
-                  onSave={() => setShowEditor(false)}
+                  onSave={handleCloseEditor}
                 />
               </div>
             </div>
@@ -148,24 +172,27 @@ export default function HomePage() {
           <h2 className="text-lg font-medium text-gray-300">最近的日記</h2>
         </div>
 
-        {recentEntries && recentEntries.length > 0 ? (
+        {isLoading ? (
           <div className="space-y-3">
-            {recentEntries
-              .filter((e) => e.date !== today)
-              .slice(0, 5)
-              .map((entry, index) => (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                >
-                  <DiaryCard
-                    entry={entry}
-                    onClick={() => setSelectedEntry(entry)}
-                  />
-                </motion.div>
-              ))}
+            <DiaryCardSkeleton />
+            <DiaryCardSkeleton />
+            <DiaryCardSkeleton />
+          </div>
+        ) : filteredRecentEntries && filteredRecentEntries.length > 0 ? (
+          <div className="space-y-3">
+            {filteredRecentEntries.map((entry, index) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+              >
+                <DiaryCard
+                  entry={entry}
+                  onClick={() => handleSelectEntry(entry)}
+                />
+              </motion.div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-12 text-gray-500">
@@ -180,7 +207,7 @@ export default function HomePage() {
       {selectedEntry && (
         <DiaryModal
           entry={selectedEntry}
-          onClose={() => setSelectedEntry(null)}
+          onClose={handleCloseModal}
         />
       )}
 
@@ -188,7 +215,7 @@ export default function HomePage() {
       {todayEntry && (
         <motion.button
           className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/30"
-          onClick={() => setShowEditor(true)}
+          onClick={handleOpenEditor}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0, scale: 0 }}

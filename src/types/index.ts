@@ -62,3 +62,41 @@ export const WEATHER_ICONS: Record<string, string> = {
     windy: '💨',
     partlyCloudy: '⛅',
 };
+
+// API 回應類型
+export interface ApiResponse<T = unknown> {
+    success: boolean;
+    data?: T;
+    error?: string;
+    message?: string;
+}
+
+// 同步狀態類型
+export interface SyncState {
+    isSyncing: boolean;
+    lastSyncTime: Date | null;
+    syncError: string | null;
+}
+
+// 統計資料類型
+export interface StatsData {
+    totalEntries: number;
+    totalPhotos: number;
+    moodCounts: Record<MoodType, number>;
+    entries: DiaryEntry[];
+}
+
+// 標籤統計類型
+export interface TagCount {
+    tag: string;
+    count: number;
+}
+
+// Toast 類型
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+// 頁面元數據類型
+export interface PageMeta {
+    title: string;
+    description: string;
+}

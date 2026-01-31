@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar } from 'lucide-react';
 import { DiaryEntry, MOOD_CONFIG } from '@/types';
@@ -10,7 +11,7 @@ interface DiaryCardProps {
     onClick?: () => void;
 }
 
-export default function DiaryCard({ entry, onClick }: DiaryCardProps) {
+function DiaryCard({ entry, onClick }: DiaryCardProps) {
     const moodConfig = MOOD_CONFIG[entry.mood];
 
     return (
@@ -91,6 +92,8 @@ export default function DiaryCard({ entry, onClick }: DiaryCardProps) {
                             src={entry.photos[0].data}
                             alt=""
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                         />
                     </div>
                 )}
@@ -98,3 +101,5 @@ export default function DiaryCard({ entry, onClick }: DiaryCardProps) {
         </motion.div>
     );
 }
+
+export default memo(DiaryCard);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImagePlus, X, Camera } from 'lucide-react';
 import { Photo } from '@/types';
@@ -13,11 +13,11 @@ interface PhotoUploaderProps {
     maxPhotos?: number;
 }
 
-export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: PhotoUploaderProps) {
+function PhotoUploader({ photos, onChange, maxPhotos = 9 }: PhotoUploaderProps) {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFiles = async (files: FileList | null) => {
+    const handleFiles = useCallback(async (files: FileList | null) => {
         if (!files) return;
 
         const newPhotos: Photo[] = [...photos];
@@ -34,26 +34,34 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: Photo
         }
 
         onChange(newPhotos);
-    };
+    }, [photos, maxPhotos, onChange]);
 
-    const handleDrop = async (e: React.DragEvent) => {
+    const handleDrop = useCallback(async (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         await handleFiles(e.dataTransfer.files);
-    };
+    }, [handleFiles]);
 
-    const handleDragOver = (e: React.DragEvent) => {
+    const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(true);
-    };
+    }, []);
 
-    const handleDragLeave = () => {
+    const handleDragLeave = useCallback(() => {
         setIsDragging(false);
-    };
+    }, []);
 
-    const removePhoto = (id: string) => {
+    const removePhoto = useCallback((id: string) => {
         onChange(photos.filter((p) => p.id !== id));
-    };
+    }, [photos, onChange]);
+
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        handleFiles(e.target.files);
+    }, [handleFiles]);
+
+    const handleClick = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
 
     return (
         <div className="space-y-4">
@@ -66,7 +74,7 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: Photo
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleClick}
                 whileHover={{ scale: 1.01 }}
                 animate={{
                     borderColor: isDragging ? 'rgb(139, 92, 246)' : undefined,
@@ -78,7 +86,7 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: Photo
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => handleFiles(e.target.files)}
+                    onChange={handleInputChange}
                 />
 
                 <motion.div
@@ -117,7 +125,12 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: Photo
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 layout
                             >
-                                <img src={photo.data} alt="" />
+                                <img
+                                    src={photo.data}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                />
                                 <motion.button
                                     className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                     onClick={(e) => {
@@ -137,3 +150,5 @@ export default function PhotoUploader({ photos, onChange, maxPhotos = 9 }: Photo
         </div>
     );
 }
+
+export default memo(PhotoUploader);

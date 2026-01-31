@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search as SearchIcon, Filter, X, ArrowUpDown, Calendar } from 'lucide-react';
 import { useSearchEntries, useAllTags } from '@/hooks/useDiary';
+import { useDebounce } from '@/hooks/useDebounce';
 import { MoodType, MOOD_CONFIG, DiaryEntry } from '@/types';
 import DiaryCard from '@/components/diary/DiaryCard';
 import DiaryModal from '@/components/diary/DiaryModal';
+import { SearchResultsSkeleton } from '@/components/common/Skeleton';
 
 export default function SearchPage() {
     const [query, setQuery] = useState('');
@@ -18,8 +20,11 @@ export default function SearchPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
 
+    // Debounce search query for better performance
+    const debouncedQuery = useDebounce(query, 300);
+
     const results = useSearchEntries(
-        query,
+        debouncedQuery,
         moodFilter,
         tagFilter,
         startDate || undefined,
@@ -28,16 +33,48 @@ export default function SearchPage() {
     );
     const allTags = useAllTags();
 
-    const clearFilters = () => {
+    const clearFilters = useCallback(() => {
         setMoodFilter(undefined);
         setTagFilter(undefined);
         setStartDate('');
         setEndDate('');
         setQuery('');
         setSortOrder('desc');
-    };
+    }, []);
 
-    const hasActiveFilters = moodFilter || tagFilter || query || startDate || endDate;
+    const toggleFilters = useCallback(() => {
+        setShowFilters(prev => !prev);
+    }, []);
+
+    const toggleSortOrder = useCallback(() => {
+        setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+    }, []);
+
+    const handleSelectEntry = useCallback((entry: DiaryEntry) => {
+        setSelectedEntry(entry);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setSelectedEntry(null);
+    }, []);
+
+    const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setQuery(e.target.value);
+    }, []);
+
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setStartDate(e.target.value);
+    }, []);
+
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setEndDate(e.target.value);
+    }, []);
+
+    const hasActiveFilters = useMemo(() => {
+        return moodFilter || tagFilter || query || startDate || endDate;
+    }, [moodFilter, tagFilter, query, startDate, endDate]);
+
+    const isLoading = results === undefined && (debouncedQuery || hasActiveFilters);
 
     return (
         <div className="p-4 max-w-lg mx-auto">
@@ -61,12 +98,12 @@ export default function SearchPage() {
                 <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={handleQueryChange}
                     placeholder="搜尋日記內容..."
                     className="input pl-12 pr-12"
                 />
                 <button
-                    onClick={() => setShowFilters(!showFilters)}
+                    onClick={toggleFilters}
                     className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${showFilters || hasActiveFilters
                         ? 'text-purple-400'
                         : 'text-gray-400'
@@ -94,14 +131,14 @@ export default function SearchPage() {
                                 <input
                                     type="date"
                                     value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
+                                    onChange={handleStartDateChange}
                                     className="input text-sm py-1"
                                 />
                                 <span className="self-center text-gray-500">-</span>
                                 <input
                                     type="date"
                                     value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
+                                    onChange={handleEndDateChange}
                                     className="input text-sm py-1"
                                 />
                             </div>
@@ -113,7 +150,7 @@ export default function SearchPage() {
                                 <ArrowUpDown className="w-4 h-4" /> 排序
                             </p>
                             <button
-                                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                                onClick={toggleSortOrder}
                                 className="tag w-full justify-center"
                             >
                                 {sortOrder === 'desc' ? '📅 日期：由新到舊' : '📅 日期：由舊到新'}
@@ -225,12 +262,14 @@ export default function SearchPage() {
 
             {/* 搜尋結果 */}
             <div className="space-y-3">
-                {results && results.length > 0 ? (
+                {isLoading ? (
+                    <SearchResultsSkeleton />
+                ) : results && results.length > 0 ? (
                     <>
                         <div className="flex justify-between items-center text-sm text-gray-400">
                             <p>找到 {results.length} 篇日記</p>
                             <button
-                                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                                onClick={toggleSortOrder}
                                 className="flex items-center gap-1 hover:text-white"
                             >
                                 <ArrowUpDown className="w-3 h-3" />
@@ -246,7 +285,7 @@ export default function SearchPage() {
                             >
                                 <DiaryCard
                                     entry={entry}
-                                    onClick={() => setSelectedEntry(entry)}
+                                    onClick={() => handleSelectEntry(entry)}
                                 />
                             </motion.div>
                         ))}
@@ -267,7 +306,7 @@ export default function SearchPage() {
             {selectedEntry && (
                 <DiaryModal
                     entry={selectedEntry}
-                    onClose={() => setSelectedEntry(null)}
+                    onClose={handleCloseModal}
                 />
             )}
         </div>

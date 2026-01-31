@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { DiaryEntry, MOOD_CONFIG } from '@/types';
@@ -10,7 +11,7 @@ interface DiaryModalProps {
     onClose: () => void;
 }
 
-export default function DiaryModal({ entry, onClose }: DiaryModalProps) {
+function DiaryModal({ entry, onClose }: DiaryModalProps) {
     if (!entry) return null;
 
     const moodConfig = MOOD_CONFIG[entry.mood];
@@ -83,7 +84,12 @@ export default function DiaryModal({ entry, onClose }: DiaryModalProps) {
                             <div className="photo-grid">
                                 {entry.photos.map((photo) => (
                                     <div key={photo.id} className="photo-item">
-                                        <img src={photo.data} alt={photo.caption || ''} />
+                                        <img
+                                            src={photo.data}
+                                            alt={photo.caption || ''}
+                                            loading="lazy"
+                                            decoding="async"
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -105,3 +111,5 @@ export default function DiaryModal({ entry, onClose }: DiaryModalProps) {
         </AnimatePresence>
     );
 }
+
+export default memo(DiaryModal);
