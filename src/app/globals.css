@@ -29,6 +29,44 @@
   --border-glow: rgba(139, 92, 246, 0.5);
 }
 
+/* 晨曦白 (Dawn White) */
+[data-theme='light'] {
+  --bg-base: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-hover: #e2e8f0;
+
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #a78bfa, #60a5fa);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --border-color: #e2e8f0;
+  --border-glow: rgba(139, 92, 246, 0.3);
+}
+
+/* 午夜藍 (Midnight Blue) */
+[data-theme='blue'] {
+  --bg-base: #020617;
+  --bg-card: #0f172a;
+  --bg-elevated: #1e293b;
+  --bg-hover: #334155;
+
+  --accent-primary: #60a5fa;
+  --accent-secondary: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #60a5fa, #2563eb);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-color: #1e293b;
+  --border-glow: rgba(96, 165, 250, 0.4);
+}
+
 * {
   box-sizing: border-box;
 }

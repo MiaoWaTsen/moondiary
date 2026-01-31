@@ -9,6 +9,9 @@ import { DiaryEntry, MOOD_CONFIG } from '@/types';
 import DiaryCard from '@/components/diary/DiaryCard';
 import DiaryEditor from '@/components/diary/DiaryEditor';
 import DiaryModal from '@/components/diary/DiaryModal';
+import ThemeSwitcher from '@/components/layout/ThemeSwitcher';
+
+import DailyPrompt from '@/components/ai/DailyPrompt';
 
 export default function HomePage() {
   const today = getTodayString();
@@ -16,12 +19,22 @@ export default function HomePage() {
   const recentEntries = useRecentEntries(5);
   const [showEditor, setShowEditor] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
+  const [editorInitialContent, setEditorInitialContent] = useState('');
 
   const now = new Date();
   const greeting = getGreeting(now.getHours());
 
+  const handlePromptSelect = (prompt: string) => {
+    setEditorInitialContent(`Q: ${prompt}\n\nA: `);
+    setShowEditor(true);
+  };
+
   return (
-    <div className="p-4 max-w-lg mx-auto">
+    <div className="p-4 max-w-lg mx-auto relative">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeSwitcher />
+      </div>
+
       {/* 頭部 - 日期和問候 */}
       <motion.header
         className="text-center py-8"
@@ -36,6 +49,18 @@ export default function HomePage() {
           讓記憶回歸本真，讓紀錄成為享受
         </p>
       </motion.header>
+
+      {/* 每日靈感 */}
+      {!todayEntry && (
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <DailyPrompt onSelect={handlePromptSelect} />
+        </motion.div>
+      )}
 
       {/* 今日狀態 */}
       <motion.section
@@ -104,6 +129,7 @@ export default function HomePage() {
                 <DiaryEditor
                   entry={todayEntry || undefined}
                   date={today}
+                  initialContent={editorInitialContent}
                   onSave={() => setShowEditor(false)}
                 />
               </div>

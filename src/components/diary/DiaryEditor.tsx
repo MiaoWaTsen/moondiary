@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Save, MapPin, Cloud, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, MapPin, Cloud, Loader2, Sparkles } from 'lucide-react';
 import { DiaryEntry, MoodType, Photo, WeatherData, LocationData } from '@/types';
 import { saveEntry, useAllTags } from '@/hooks/useDiary';
 import { getWeather } from '@/lib/weather';
@@ -11,16 +11,18 @@ import { getTodayString } from '@/lib/utils';
 import MoodPicker from '@/components/mood/MoodPicker';
 import PhotoUploader from '@/components/photos/PhotoUploader';
 import TagInput from '@/components/tags/TagInput';
+import { analyzeMood } from '@/app/actions/analyzeMood';
 
 interface DiaryEditorProps {
     entry?: DiaryEntry;
     date?: string;
+    initialContent?: string;
     onSave?: () => void;
 }
 
-export default function DiaryEditor({ entry, date, onSave }: DiaryEditorProps) {
+export default function DiaryEditor({ entry, date, initialContent, onSave }: DiaryEditorProps) {
     const [title, setTitle] = useState(entry?.title || '');
-    const [content, setContent] = useState(entry?.content || '');
+    const [content, setContent] = useState(entry?.content || initialContent || '');
     const [mood, setMood] = useState<MoodType>(entry?.mood || 'okay');
     const [photos, setPhotos] = useState<Photo[]>(entry?.photos || []);
     const [tags, setTags] = useState<string[]>(entry?.tags || []);
@@ -29,6 +31,8 @@ export default function DiaryEditor({ entry, date, onSave }: DiaryEditorProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<{ analysis: string; quote: string } | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const allTags = useAllTags();
     const tagSuggestions = allTags?.map((t) => t.tag) || [];
@@ -40,7 +44,7 @@ export default function DiaryEditor({ entry, date, onSave }: DiaryEditorProps) {
         if (!weather && !location) {
             fetchLocationAndWeather();
         }
-    }, []);
+    }, [weather, location]);
 
     const fetchLocationAndWeather = async () => {
         setIsLoadingLocation(true);
@@ -57,6 +61,22 @@ export default function DiaryEditor({ entry, date, onSave }: DiaryEditorProps) {
             console.error('Failed to get location/weather:', error);
         }
         setIsLoadingLocation(false);
+    };
+
+    const handleAnalyze = async () => {
+        if (!content.trim()) return;
+        setIsAnalyzing(true);
+        try {
+            const result = await analyzeMood(content);
+            setMood(result.mood);
+            setAnalysisResult({
+                analysis: result.analysis,
+                quote: result.quote
+            });
+        } catch (error) {
+            console.error('Analysis failed:', error);
+        }
+        setIsAnalyzing(false);
     };
 
     const handleSave = async () => {
@@ -104,12 +124,48 @@ export default function DiaryEditor({ entry, date, onSave }: DiaryEditorProps) {
             />
 
             {/* 內容 */}
-            <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="寫下今天的故事..."
-                className="textarea"
-            />
+            <div className="relative">
+                <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="寫下今天的故事..."
+                    className="textarea mb-2"
+                />
+                <button
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing || !content.trim()}
+                    className="absolute bottom-6 right-4 text-xs bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-full hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+                >
+                    {isAnalyzing ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                        <Sparkles className="w-3 h-3" />
+                    )}
+                    AI 分析
+                </button>
+            </div>
+
+            {/* AI 分析結果 */}
+            <AnimatePresence>
+                {analysisResult && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="card bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border-indigo-500/30 overflow-hidden"
+                    >
+                        <div className="flex items-start gap-3">
+                            <Sparkles className="w-5 h-5 text-indigo-400 mt-1 shrink-0" />
+                            <div>
+                                <p className="text-sm text-gray-300 mb-2">{analysisResult.analysis}</p>
+                                <p className="text-sm font-medium text-indigo-300 italic">
+                                    {analysisResult.quote}
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* 照片上傳 */}
             <div className="card">

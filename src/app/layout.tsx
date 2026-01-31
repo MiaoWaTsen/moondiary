@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import AnimatedBg from '@/components/layout/AnimatedBg';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 export const metadata: Metadata = {
   title: 'Moodiary - 記錄每一天的心情',
@@ -20,11 +21,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0f" />
       </head>
       <body>
-        <AnimatedBg />
-        <main className="page-content">
-          {children}
-        </main>
-        <Navbar />
+        <ThemeProvider>
+          <AnimatedBg />
+          <main className="page-content">
+            {children}
+          </main>
+          <Navbar />
+        </ThemeProvider>
       </body>
     </html>
   );
