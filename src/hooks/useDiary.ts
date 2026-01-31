@@ -76,7 +76,15 @@ export async function deleteEntry(id: string): Promise<void> {
 }
 
 // 搜尋日記
-export function useSearchEntries(query: string, moodFilter?: MoodType, tagFilter?: string) {
+// 搜尋日記
+export function useSearchEntries(
+    query: string,
+    moodFilter?: MoodType,
+    tagFilter?: string,
+    startDate?: string,
+    endDate?: string,
+    sortOrder: 'desc' | 'asc' = 'desc'
+) {
     return useLiveQuery(async () => {
         let entries = await db.entries.toArray();
 
@@ -100,8 +108,20 @@ export function useSearchEntries(query: string, moodFilter?: MoodType, tagFilter
             entries = entries.filter((e) => e.tags.includes(tagFilter));
         }
 
-        return entries.sort((a, b) => b.date.localeCompare(a.date));
-    }, [query, moodFilter, tagFilter]);
+        // 日期範圍篩選
+        if (startDate) {
+            entries = entries.filter((e) => e.date >= startDate);
+        }
+        if (endDate) {
+            entries = entries.filter((e) => e.date <= endDate);
+        }
+
+        return entries.sort((a, b) => {
+            return sortOrder === 'desc'
+                ? b.date.localeCompare(a.date)
+                : a.date.localeCompare(b.date);
+        });
+    }, [query, moodFilter, tagFilter, startDate, endDate, sortOrder]);
 }
 
 // 取得所有使用過的標籤

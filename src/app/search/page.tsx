@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search as SearchIcon, Filter, X } from 'lucide-react';
+import { Search as SearchIcon, Filter, X, ArrowUpDown, Calendar } from 'lucide-react';
 import { useSearchEntries, useAllTags } from '@/hooks/useDiary';
 import { MoodType, MOOD_CONFIG, DiaryEntry } from '@/types';
 import DiaryCard from '@/components/diary/DiaryCard';
@@ -12,19 +12,32 @@ export default function SearchPage() {
     const [query, setQuery] = useState('');
     const [moodFilter, setMoodFilter] = useState<MoodType | undefined>();
     const [tagFilter, setTagFilter] = useState<string | undefined>();
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
     const [showFilters, setShowFilters] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
 
-    const results = useSearchEntries(query, moodFilter, tagFilter);
+    const results = useSearchEntries(
+        query,
+        moodFilter,
+        tagFilter,
+        startDate || undefined,
+        endDate || undefined,
+        sortOrder
+    );
     const allTags = useAllTags();
 
     const clearFilters = () => {
         setMoodFilter(undefined);
         setTagFilter(undefined);
+        setStartDate('');
+        setEndDate('');
         setQuery('');
+        setSortOrder('desc');
     };
 
-    const hasActiveFilters = moodFilter || tagFilter || query;
+    const hasActiveFilters = moodFilter || tagFilter || query || startDate || endDate;
 
     return (
         <div className="p-4 max-w-lg mx-auto">
@@ -54,9 +67,9 @@ export default function SearchPage() {
                 />
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${showFilters || moodFilter || tagFilter
-                            ? 'text-purple-400'
-                            : 'text-gray-400'
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${showFilters || hasActiveFilters
+                        ? 'text-purple-400'
+                        : 'text-gray-400'
                         }`}
                 >
                     <Filter className="w-5 h-5" />
@@ -72,6 +85,41 @@ export default function SearchPage() {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                     >
+                        {/* 日期篩選 */}
+                        <div>
+                            <p className="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                                <Calendar className="w-4 h-4" /> 日期範圍
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="input text-sm py-1"
+                                />
+                                <span className="self-center text-gray-500">-</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="input text-sm py-1"
+                                />
+                            </div>
+                        </div>
+
+                        {/* 排序 */}
+                        <div>
+                            <p className="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                                <ArrowUpDown className="w-4 h-4" /> 排序
+                            </p>
+                            <button
+                                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                                className="tag w-full justify-center"
+                            >
+                                {sortOrder === 'desc' ? '📅 日期：由新到舊' : '📅 日期：由舊到新'}
+                            </button>
+                        </div>
+
                         {/* 心情篩選 */}
                         <div>
                             <p className="text-sm text-gray-400 mb-2">心情</p>
@@ -134,6 +182,22 @@ export default function SearchPage() {
                             </button>
                         </span>
                     )}
+                    {startDate && (
+                        <span className="tag">
+                            {startDate} 起
+                            <button onClick={() => setStartDate('')} className="ml-1">
+                                <X className="w-3 h-3" />
+                            </button>
+                        </span>
+                    )}
+                    {endDate && (
+                        <span className="tag">
+                            至 {endDate}
+                            <button onClick={() => setEndDate('')} className="ml-1">
+                                <X className="w-3 h-3" />
+                            </button>
+                        </span>
+                    )}
                     {moodFilter && (
                         <span className="tag">
                             {MOOD_CONFIG[moodFilter].emoji}
@@ -163,9 +227,16 @@ export default function SearchPage() {
             <div className="space-y-3">
                 {results && results.length > 0 ? (
                     <>
-                        <p className="text-sm text-gray-400">
-                            找到 {results.length} 篇日記
-                        </p>
+                        <div className="flex justify-between items-center text-sm text-gray-400">
+                            <p>找到 {results.length} 篇日記</p>
+                            <button
+                                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                                className="flex items-center gap-1 hover:text-white"
+                            >
+                                <ArrowUpDown className="w-3 h-3" />
+                                {sortOrder === 'desc' ? '新→舊' : '舊→新'}
+                            </button>
+                        </div>
                         {results.map((entry, index) => (
                             <motion.div
                                 key={entry.id}
