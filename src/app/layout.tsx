@@ -30,6 +30,19 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="theme-color" content="#0a0a0f" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {/* 在 React hydration 前讀取主題，避免閃爍 (FOUC) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('moodiary-theme') || 'dark';
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         <AuthProvider>
