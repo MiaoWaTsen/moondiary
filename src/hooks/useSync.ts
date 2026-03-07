@@ -56,7 +56,7 @@ export function useSync() {
                 });
             }
 
-            // 2. PULL: 下載雲端更新
+            // 2. PULL: 下載雲端更新（Last Write Wins 衝突處理）
             const { data: cloudEntries, error: fetchError } = await supabase
                 .from('entries')
                 .select('*')
@@ -67,8 +67,25 @@ export function useSync() {
             if (cloudEntries && cloudEntries.length > 0) {
                 await db.transaction('rw', db.entries, async () => {
                     for (const cloudEntry of cloudEntries) {
-                        // 轉換格式並存入
-                        const localEntry: DiaryEntry & { synced?: number } = {
+                        // 檢查本地是否已有此記錄
+                        const localEntry = await db.entries.get(cloudEntry.id);
+
+                        if (localEntry) {
+                            const localTime = new Date(localEntry.updatedAt).getTime();
+                            const cloudTime = new Date(cloudEntry.updated_at).getTime();
+
+                            // Last Write Wins：本地較新則跳過雲端版本
+                            if (localTime > cloudTime) {
+                                console.warn(
+                                    `[Sync] 衝突偵測: entry ${cloudEntry.id} (${cloudEntry.date}) — 本地版本較新，跳過雲端覆蓋`,
+                                    { localUpdatedAt: localEntry.updatedAt, cloudUpdatedAt: cloudEntry.updated_at }
+                                );
+                                continue;
+                            }
+                        }
+
+                        // 轉換格式並存入（雲端較新或本地不存在）
+                        const mergedEntry: DiaryEntry & { synced?: number } = {
                             id: cloudEntry.id,
                             date: cloudEntry.date,
                             title: cloudEntry.title,
@@ -82,7 +99,7 @@ export function useSync() {
                             updatedAt: new Date(cloudEntry.updated_at),
                             synced: 1, // 來自雲端，視為已同步
                         };
-                        await db.entries.put(localEntry);
+                        await db.entries.put(mergedEntry);
                     }
                 });
             }

@@ -29,8 +29,8 @@ export function checkIsSameMonth(date1: Date, date2: Date): boolean {
     return isSameMonth(date1, date2);
 }
 
-// 圖片壓縮
-export async function compressImage(file: File, maxSize: number = 800): Promise<string> {
+// 圖片壓縮（maxSize: 600px, quality: 0.6 — 比原先更積極的壓縮以節省儲存空間）
+export async function compressImage(file: File, maxSize: number = 600): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -53,7 +53,7 @@ export async function compressImage(file: File, maxSize: number = 800): Promise<
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
             };
             img.onerror = reject;
             img.src = e.target?.result as string;
