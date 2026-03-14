@@ -439,6 +439,23 @@ body {
   }
 }
 
+/* 手機版：關閉重量級 CSS 背景動畫 */
+@media (max-width: 768px) {
+
+  .animated-bg::before,
+  .animated-bg::after {
+    animation: none !important;
+    opacity: 0.3;
+  }
+
+  /* backdrop-blur 在手機上效能極差 */
+  .backdrop-blur-sm,
+  .backdrop-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* ===== 手機版 CSS 特效（取代 Framer Motion） ===== */
 
 /* 極光效果 CSS 版 */
