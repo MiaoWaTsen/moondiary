@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { BookHeart, Sparkles, Heart, Star, Zap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useMobile } from '@/hooks/useMobile';
 import LoginModal from '@/components/auth/LoginModal';
 import Navbar from './Navbar';
 import SyncManager from './SyncManager';
@@ -51,7 +52,113 @@ function LoadingScreen() {
 // 歡迎頁面組件
 function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
     const reducedMotion = useReducedMotion();
+    const isMobile = useMobile();
 
+    // === 手機版：純 CSS 動畫，零 Framer Motion 無限循環 ===
+    if (isMobile) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                {/* CSS 背景特效 */}
+                <GridBackground />
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="css-aurora css-aurora-1" />
+                    <div className="css-aurora css-aurora-2" />
+                </div>
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="css-orb css-orb-main" />
+                    <div className="css-orb css-orb-left" />
+                    <div className="css-orb css-orb-right" />
+                </div>
+
+                {/* Logo */}
+                <div className="text-center max-w-md z-10">
+                    <div className="mb-8 relative">
+                        <div
+                            className="absolute inset-0 w-32 h-32 mx-auto rounded-full bg-purple-500/20 blur-xl css-logo-glow"
+                            style={{ top: '-16px', left: 'calc(50% - 64px)' }}
+                        />
+                        <div
+                            className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center shadow-lg relative css-logo-icon"
+                        >
+                            <BookHeart className="w-12 h-12 text-white drop-shadow-lg" />
+                            <div className="absolute -top-1 -right-1">
+                                <Sparkles className="w-4 h-4 text-yellow-300 opacity-70" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 標題 */}
+                    <h1
+                        className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-4 css-title-gradient"
+                    >
+                        Moodiary
+                    </h1>
+
+                    <p className="text-gray-400 text-lg mb-2">記錄每一天的心情</p>
+                    <p className="text-gray-500 text-sm mb-8">讓記憶回歸本真，讓紀錄成為享受</p>
+
+                    {/* 功能介紹 */}
+                    <div className="grid grid-cols-3 gap-4 mb-10">
+                        {[
+                            { emoji: '📝', label: '寫日記' },
+                            { emoji: '📊', label: '心情統計' },
+                            { emoji: '☁️', label: '雲端同步' },
+                        ].map((item, i) => (
+                            <div
+                                key={i}
+                                className="text-center p-3 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10"
+                            >
+                                <div className="text-2xl mb-1">{item.emoji}</div>
+                                <p className="text-xs text-gray-500">{item.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 登入按鈕 */}
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 blur-lg css-btn-glow" />
+                        <button
+                            onClick={onLogin}
+                            className="btn btn-primary w-full text-lg py-4 flex items-center justify-center gap-2 relative overflow-hidden"
+                        >
+                            <div className="absolute inset-0 css-btn-gradient" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent css-btn-shine" />
+                            <Sparkles className="w-5 h-5 relative z-10" />
+                            <span className="relative z-10 font-bold">開始使用</span>
+                            <Zap className="w-4 h-4 relative z-10" />
+                        </button>
+                    </div>
+
+                    <p className="text-gray-600 text-xs mt-6">登入後即可開始記錄你的心情日記</p>
+
+                    {/* 底部 emoji */}
+                    <div className="flex justify-center gap-3 mt-8">
+                        {['😢', '😔', '😐', '😊', '🤩'].map((emoji, i) => (
+                            <span
+                                key={i}
+                                className="text-2xl css-emoji-bounce"
+                                style={{ animationDelay: `${i * 0.15}s` }}
+                            >
+                                {emoji}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 角落裝飾（靜態） */}
+                <div className="absolute top-8 left-8 w-20 h-20 border-l-2 border-t-2 border-purple-500/20 rounded-tl-3xl" />
+                <div className="absolute top-8 right-8 w-20 h-20 border-r-2 border-t-2 border-pink-500/20 rounded-tr-3xl" />
+                <div className="absolute bottom-8 left-8 w-20 h-20 border-l-2 border-b-2 border-blue-500/20 rounded-bl-3xl" />
+                <div className="absolute bottom-8 right-8 w-20 h-20 border-r-2 border-b-2 border-purple-500/20 rounded-br-3xl" />
+
+                {/* 頂部/底部裝飾線（靜態） */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+            </div>
+        );
+    }
+
+    // === 桌面版：保留原有的 Framer Motion 動畫 ===
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
             {/* 背景特效 — reduced motion 模式下只保留基本效果 */}
