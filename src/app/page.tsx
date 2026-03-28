@@ -134,7 +134,7 @@ export default function HomePage() {
       <AnimatePresence>
         {showEditor && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
